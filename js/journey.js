@@ -1,6 +1,6 @@
 // Journey mode: endless numbered levels. Each one starts with a pre-filled board
 // and asks you to collect gems by clearing the lines they sit in.
-import { COLORS, JOURNEY } from './config.js';
+import { COLORS, JOURNEY, WORLDS } from './config.js';
 import {
   Game,
   N,
@@ -36,7 +36,25 @@ export function makeLevel(level) {
     const count = Math.ceil(g.need * JOURNEY.startGemShare);
     for (let j = 0; j < count && k < filled.length; j++, k++) board[filled[k]] = { c: g.color, g: 1 };
   }
-  return { level, board, goals, seed: levelSeed(level) ^ 0x9e3779b9 };
+  return { level, board, goals, par: starTargets(goals), seed: levelSeed(level) ^ 0x9e3779b9 };
+}
+
+// Most moves allowed for [3 stars, 2 stars]. Finishing at all earns 1.
+export function starTargets(goals) {
+  const gems = goals.reduce((sum, g) => sum + g.need, 0);
+  const { threeBase, threePerGem, twoBase, twoPerGem } = JOURNEY.stars;
+  return [Math.ceil(threeBase + threePerGem * gems), Math.ceil(twoBase + twoPerGem * gems)];
+}
+
+export const starsFor = (moves, [three, two]) => (moves <= three ? 3 : moves <= two ? 2 : 1);
+
+export const worldOf = (level) => Math.floor((level - 1) / JOURNEY.worldSize);
+
+const ROMAN = ['', '', ' II', ' III', ' IV', ' V', ' VI', ' VII', ' VIII', ' IX', ' X'];
+export function worldInfo(world) {
+  const theme = WORLDS[world % WORLDS.length];
+  const lap = Math.floor(world / WORLDS.length) + 1;
+  return { ...theme, index: world, name: theme.name + (ROMAN[lap] ?? ` ${lap}`) };
 }
 
 function prefill(rng, density) {
@@ -63,8 +81,8 @@ function prefill(rng, density) {
 }
 
 export function newJourneyGame(level) {
-  const { board, goals, seed } = makeLevel(level);
-  const game = new Game({ mode: 'journey', level, board, goals, rng: mulberry32(seed) });
+  const { board, goals, par, seed } = makeLevel(level);
+  const game = new Game({ mode: 'journey', level, board, goals, par, rng: mulberry32(seed) });
   game.refill();
   return game;
 }

@@ -202,6 +202,7 @@ export class Game {
     this.moves = d.moves ?? 0;
     this.level = d.level ?? 0;
     this.goals = d.goals ?? null; // Journey: [{ color, need, got }]
+    this.par = d.par ?? null; // Journey: most moves for [3 stars, 2 stars]
     this.rng = d.rng ?? Math.random;
   }
 
@@ -333,8 +334,8 @@ export class Game {
   }
 
   toJSON() {
-    const { mode, board, tray, score, combo, movesSinceClear, moves, level, goals } = this;
-    return { v: 1, mode, board, tray, score, combo, movesSinceClear, moves, level, goals };
+    const { mode, board, tray, score, combo, movesSinceClear, moves, level, goals, par } = this;
+    return { v: 1, mode, board, tray, score, combo, movesSinceClear, moves, level, goals, par };
   }
 
   static fromJSON(d, rng) {

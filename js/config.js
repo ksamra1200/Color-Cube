@@ -59,7 +59,23 @@ export const JOURNEY = {
   densityPerLevel: 0.012,
   maxDensity: 0.48,
   startGemShare: 0.5, // share of each goal already sitting on the starting board
+  worldSize: 15, // levels per world on the map
+  // Star targets, in moves, from the total number of gems a level asks for:
+  // 3 stars within threeBase + threePerGem * gems, 2 stars within twoBase + twoPerGem * gems.
+  stars: { threeBase: 6, threePerGem: 0.9, twoBase: 12, twoPerGem: 1.35 },
 };
+
+// Map worlds, bottom to top. After the last one they repeat as "II", "III", ...
+// `sky` is the background at the bottom of the world; it blends into the next world's.
+export const WORLDS = [
+  { name: 'Rainbow Meadow', sky: '#6fd37a', node: '#ff7a3d', deco: ['#ffcf33', '#f04848', '#3f73ee'] },
+  { name: 'Bubblegum Bay', sky: '#6fd3f0', node: '#f262b5', deco: ['#ffffff', '#f262b5', '#9b5cf0'] },
+  { name: 'Lemon Dunes', sky: '#ffd56b', node: '#e8732a', deco: ['#ff9330', '#5acb4e', '#f04848'] },
+  { name: 'Crystal Caves', sky: '#6b55d9', node: '#35c6ea', deco: ['#35c6ea', '#f262b5', '#ffffff'] },
+  { name: 'Frosty Peaks', sky: '#9fd2f7', node: '#3f73ee', deco: ['#ffffff', '#35c6ea', '#3f73ee'] },
+  { name: 'Lava Ridge', sky: '#ef6a45', node: '#ffb21f', deco: ['#ffcf33', '#ff9330', '#7a1d1d'] },
+  { name: 'Galaxy Garden', sky: '#2e2a7a', node: '#9b5cf0', deco: ['#ffffff', '#ffcf33', '#35c6ea'] },
+];
 
 // Piece shapes: 'X' = block, '.' = gap. Weight = how often it's dealt.
 const S = (id, weight, ...rows) => ({ id, weight, rows });

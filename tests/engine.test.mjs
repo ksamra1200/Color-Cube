@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { SCORING } from '../js/config.js';
+import { JOURNEY, SCORING, WORLDS } from '../js/config.js';
 import {
   Game,
   N,
@@ -18,7 +18,7 @@ import {
   previewLines,
   shapeOf,
 } from '../js/engine.js';
-import { makeLevel, newJourneyGame } from '../js/journey.js';
+import { makeLevel, newJourneyGame, starTargets, starsFor, worldInfo, worldOf } from '../js/journey.js';
 
 const block = (c = 0, g = 0) => ({ c, g });
 const piece = (id, color = 0, gems = []) => ({ id, color, gems });
@@ -254,4 +254,37 @@ test('journey deals gems in goal colors', () => {
     }
   }
   assert.ok(gemPieces > 0);
+});
+
+test('star targets grow with the gems a level asks for', () => {
+  const small = starTargets([{ color: 0, need: 4, got: 0 }]);
+  const big = starTargets([
+    { color: 0, need: 14, got: 0 },
+    { color: 1, need: 14, got: 0 },
+  ]);
+  for (const [three, two] of [small, big]) assert.ok(three > 0 && two > three);
+  assert.ok(big[0] > small[0] && big[1] > small[1]);
+  const [three, two] = small;
+  assert.equal(starsFor(1, small), 3);
+  assert.equal(starsFor(three, small), 3);
+  assert.equal(starsFor(three + 1, small), 2);
+  assert.equal(starsFor(two, small), 2);
+  assert.equal(starsFor(two + 1, small), 1);
+  for (let level = 1; level <= 40; level++) assert.deepEqual(makeLevel(level).par, starTargets(makeLevel(level).goals));
+});
+
+test('journey games carry their star targets through a save', () => {
+  const g = newJourneyGame(5);
+  assert.deepEqual(g.par, makeLevel(5).par);
+  assert.deepEqual(Game.fromJSON(JSON.parse(JSON.stringify(g))).par, g.par);
+});
+
+test('levels group into named worlds that repeat with numerals', () => {
+  const size = JOURNEY.worldSize;
+  assert.equal(worldOf(1), 0);
+  assert.equal(worldOf(size), 0);
+  assert.equal(worldOf(size + 1), 1);
+  assert.equal(worldInfo(0).name, WORLDS[0].name);
+  assert.equal(worldInfo(WORLDS.length).name, `${WORLDS[0].name} II`);
+  assert.equal(worldInfo(WORLDS.length * 2 + 1).name, `${WORLDS[1].name} III`);
 });
