@@ -47,6 +47,7 @@ const map = new MapScreen({
   scroller: $('map-scroll'),
   content: $('map-content'),
   title: $('map-title'),
+  atmos: $('map-atmos'),
   onSelect: (level) => {
     sfx.button();
     openLevel(level);

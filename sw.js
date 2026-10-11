@@ -1,6 +1,6 @@
 // Offline support. Network first so friends always get your latest changes when
 // online; falls back to the cached copy when offline. Bump VERSION if you add files.
-const VERSION = 'color-block-v3';
+const VERSION = 'color-block-v4';
 const FILES = [
   './',
   'index.html',

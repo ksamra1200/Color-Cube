@@ -38,8 +38,9 @@ function smoothPath(pts) {
 }
 
 export class MapScreen {
-  constructor({ scroller, content, title, onSelect, onLocked }) {
+  constructor({ scroller, content, title, atmos, onSelect, onLocked }) {
     this.scroller = scroller;
+    this.atmos = atmos;
     this.content = content;
     this.title = title;
     this.onSelect = onSelect;
@@ -109,7 +110,7 @@ export class MapScreen {
       const half = Math.max(90, worldInfo(w).name.length * 6.5 + 34);
       keepOut.push([W / 2 - half, signY(w) - 34, W / 2 + half, signY(w) + 80]);
     }
-    this.bands = bands.map(({ top, bottom, theme }) => ({ top, bottom, name: theme.name }));
+    this.bands = bands.map(({ top, bottom, theme }) => ({ top, bottom, name: theme.name, haze: theme.haze }));
 
     const points = [];
     for (let level = 1; level <= count; level++) points.push(pos(level));
@@ -126,7 +127,7 @@ export class MapScreen {
       const first = w * size + 1;
       const locked = first > unlocked ? ' locked' : '';
       html.push(
-        `<div class="world-banner${locked}" style="top:${signY(w)}px"><small>District ${w + 1}</small><b>${worldInfo(w).name}</b></div>`,
+        `<div class="world-banner${locked}" style="top:${signY(w)}px;--neon:${worldInfo(w).neon[0] || worldInfo(w).haze}"><small>District ${w + 1}</small><b>${worldInfo(w).name}</b></div>`,
       );
     }
 
@@ -219,6 +220,8 @@ export class MapScreen {
     const y = this.scroller.scrollTop + this.scroller.clientHeight / 2;
     const band = this.bands.find((b) => y >= b.top && y <= b.bottom) || this.bands[0];
     if (this.title.textContent !== band.name) this.title.textContent = band.name;
+    // Tint the smog over the map to the district in view.
+    if (this.atmos && this.atmos.style.color !== band.haze) this.atmos.style.color = band.haze;
   }
 
   // Walk the marker from avatarAt up to the newly unlocked level.
