@@ -1,6 +1,8 @@
 // The play screen: input, animation and drawing. Rules live in engine.js.
 import { PRAISE, SCORING, THEME } from './config.js';
 import { N, idx, previewLines, shapeOf } from './engine.js';
+import { starsFor } from './journey.js';
+import { starRow } from './map.js';
 import { blockSprite, clearSprites, colorHex, gemIcon, roundRect } from './render.js';
 
 const now = () => performance.now();
@@ -61,6 +63,7 @@ export class GameScreen {
     this.startBest = best;
     this.shownScore = game.score;
     this.goalShown = game.goals ? game.goals.map((g) => g.got) : null;
+    this.shownStars = 0;
     this.drag = null;
     this.resetFx();
     this.fxLayer.replaceChildren();
@@ -413,7 +416,25 @@ export class GameScreen {
         el.querySelector('span').textContent = left > 0 ? left : '✓';
         el.classList.toggle('done', left <= 0);
       });
+      if (game.par) this.updateStars();
     }
+  }
+
+  // Journey: you start with three stars and lose them as your move count passes each target.
+  updateStars() {
+    const { hud, game } = this;
+    const stars = starsFor(game.moves, game.par);
+    if (stars !== this.shownStars) {
+      hud.stars.innerHTML = starRow(stars);
+      if (this.shownStars > stars) {
+        hud.stars.querySelectorAll('.star')[stars]?.classList.add('lost');
+        this.sfx.invalid();
+      }
+      this.shownStars = stars;
+    }
+    hud.moves.textContent = game.moves;
+    const limit = stars === 3 ? game.par[0] : stars === 2 ? game.par[1] : 0;
+    hud.par.textContent = limit ? ` / ${limit}` : '';
   }
 
   gemArrived(goal) {

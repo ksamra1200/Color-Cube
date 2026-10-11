@@ -4,7 +4,8 @@ import { COLORS } from './config.js';
 import { Game } from './engine.js';
 import { GameScreen } from './game.js';
 import { Haptics } from './haptics.js';
-import { newJourneyGame } from './journey.js';
+import { makeLevel, newJourneyGame, starsFor, worldInfo, worldOf } from './journey.js';
+import { MapScreen, starRow } from './map.js';
 import { gemIcon } from './render.js';
 import { store } from './storage.js';
 
@@ -14,6 +15,8 @@ const CROWN = '<svg class="crown" viewBox="0 0 24 24"><path d="M3 7l4.5 4L12 4l4
 const settings = { sound: true, haptics: true, ...store.get('settings', {}) };
 let best = store.get('best', 0);
 let journeyLevel = store.get('journeyLevel', 1);
+let journeyStars = store.get('journeyStars', {}); // best stars per level
+let lastWin = null;
 
 const sfx = new Sfx();
 const haptics = new Haptics();
@@ -30,12 +33,29 @@ const screen = new GameScreen({
     combo: $('hud-combo'),
     comboCount: $('hud-combo-count'),
     comboPips: $('hud-combo-pips'),
+    stars: $('hud-stars'),
+    moves: $('hud-moves'),
+    par: $('hud-par'),
   },
   fxLayer: $('fx-layer'),
   sfx,
   haptics,
   events: { save: saveGame, over: onOver, won: onWon },
 });
+
+const map = new MapScreen({
+  scroller: $('map-scroll'),
+  content: $('map-content'),
+  title: $('map-title'),
+  onSelect: (level) => {
+    sfx.button();
+    openLevel(level);
+  },
+  onLocked: () => sfx.invalid(),
+});
+
+const totalStars = () => Object.values(journeyStars).reduce((sum, n) => sum + n, 0);
+const isResumable = (g, level) => g && g.mode === 'journey' && g.level === level && !g.isOver && !g.isWon;
 
 // ---------------------------------------------------------------- saving
 
@@ -46,7 +66,13 @@ function saveGame(game) {
     store.set('best', best);
   }
   if (game.isWon) {
-    journeyLevel = Math.max(journeyLevel, game.level + 1);
+    const { level, moves } = game;
+    const stars = starsFor(moves, game.par || makeLevel(level).par);
+    const previous = journeyStars[level] || 0;
+    lastWin = { level, moves, stars, firstTime: level >= journeyLevel, improved: stars > previous };
+    journeyStars = { ...journeyStars, [level]: Math.max(previous, stars) };
+    journeyLevel = Math.max(journeyLevel, level + 1);
+    store.set('journeyStars', journeyStars);
     store.set('journeyLevel', journeyLevel);
     store.remove(key);
   } else if (game.isOver) {
@@ -59,8 +85,8 @@ function saveGame(game) {
 // ---------------------------------------------------------------- screens
 
 function show(name) {
-  $('screen-home').classList.toggle('hidden', name !== 'home');
-  $('screen-game').classList.toggle('hidden', name !== 'game');
+  for (const id of ['home', 'map', 'game']) $(`screen-${id}`).classList.toggle('hidden', name !== id);
+  map.visible = name === 'map';
 }
 
 function refreshHome() {
@@ -91,15 +117,55 @@ function playClassic(fresh = false) {
   screen.start(game, { best });
 }
 
-function playJourney(fresh = false) {
+function playJourney(level, fresh = false) {
   const saved = fresh ? null : Game.fromJSON(store.get('journeySave'));
-  const resumable = saved && saved.mode === 'journey' && saved.level === journeyLevel && !saved.isOver && !saved.isWon;
-  const game = resumable ? saved : newJourneyGame(journeyLevel);
+  const resumable = isResumable(saved, level);
+  const game = resumable ? saved : newJourneyGame(level);
+  if (!game.par) game.par = makeLevel(level).par;
   if (!resumable) store.remove('journeySave');
   closeModal();
   clearConfetti();
   show('game');
   screen.start(game, { best });
+}
+
+// advanceFrom: the level just beaten for the first time; the marker walks on from it.
+function openMap({ advanceFrom = null, focus = null } = {}) {
+  screen.stop();
+  closeModal();
+  clearConfetti();
+  show('map');
+  $('map-stars').textContent = totalStars();
+  const walking = advanceFrom !== null && advanceFrom < journeyLevel;
+  const avatarAt = walking ? advanceFrom : journeyLevel;
+  map.render({ unlocked: journeyLevel, stars: journeyStars, avatarAt });
+  map.scrollTo(focus ?? avatarAt);
+  if (!walking) return;
+  map.advance().then(() => {
+    if (!map.visible) return;
+    sfx.levelUnlock();
+    haptics.tap('medium');
+    setTimeout(() => map.visible && openLevel(journeyLevel), 500);
+  });
+}
+
+function openLevel(level) {
+  const { goals, par } = makeLevel(level);
+  const pills = goals
+    .map((g) => `<div class="goal"><img alt="" src="${gemIcon(g.color)}"><span>${g.need}</span></div>`)
+    .join('');
+  const resumable = isResumable(Game.fromJSON(store.get('journeySave')), level);
+  openModal(
+    `<h2>Level ${level}</h2>
+     <p class="level-world">${worldInfo(worldOf(level)).name}</p>
+     ${starRow(journeyStars[level] || 0, 'big')}
+     <p>Collect the gems</p>
+     <div class="goal-row">${pills}</div>
+     <p class="star-hint">Finish in ${par[0]} moves or fewer for 3 stars</p>
+     <button class="btn btn-green" data-act="play">${resumable ? 'Continue' : 'Play'}</button>
+     <button class="btn btn-gray" data-act="close">Close</button>`,
+    { play: () => playJourney(level), close: closeModal },
+  );
 }
 
 // ---------------------------------------------------------------- modals
@@ -158,17 +224,18 @@ function openPause() {
     closeModal();
     screen.resume();
   };
-  const journey = screen.game.mode === 'journey';
+  const { mode, level } = screen.game;
+  const journey = mode === 'journey';
   openModal(
     `<h2>Paused</h2>
      ${toggleRows()}
      <button class="btn btn-green" data-act="resume">Resume</button>
      <button class="btn btn-orange" data-act="restart">${journey ? 'Restart Level' : 'New Game'}</button>
-     <button class="btn btn-blue" data-act="home">Home</button>`,
+     <button class="btn btn-blue" data-act="leave">${journey ? 'Map' : 'Home'}</button>`,
     {
       resume,
-      restart: () => (journey ? playJourney(true) : playClassic(true)),
-      home: goHome,
+      restart: () => (journey ? playJourney(level, true) : playClassic(true)),
+      leave: () => (journey ? openMap({ focus: level }) : goHome()),
     },
   );
 }
@@ -191,9 +258,10 @@ function confirmReset() {
      <button class="btn btn-gray" data-act="no">Cancel</button>`,
     {
       yes: () => {
-        for (const key of ['best', 'journeyLevel', 'classicSave', 'journeySave']) store.remove(key);
+        for (const key of ['best', 'journeyLevel', 'journeyStars', 'classicSave', 'journeySave']) store.remove(key);
         best = 0;
         journeyLevel = 1;
+        journeyStars = {};
         closeModal();
         refreshHome();
       },
@@ -222,8 +290,8 @@ function onOver(info) {
        <p>Level ${info.level}</p>
        <div class="goal-row">${progress}</div>
        <button class="btn btn-green" data-act="retry">Try Again</button>
-       <button class="btn btn-blue" data-act="home">Home</button>`,
-      { retry: () => playJourney(true), home: goHome },
+       <button class="btn btn-blue" data-act="map">Map</button>`,
+      { retry: () => playJourney(info.level, true), map: () => openMap({ focus: info.level }) },
     );
     return;
   }
@@ -244,14 +312,16 @@ function onOver(info) {
 }
 
 function onWon({ level }) {
+  const win = lastWin?.level === level ? lastWin : { level, moves: 0, stars: 1, firstTime: false, improved: false };
   confetti();
   openModal(
     `<h2>Level ${level}<br>Complete!</h2>
-     <p>All gems collected</p>
-     <button class="btn btn-green" data-act="next">Next Level</button>
-     <button class="btn btn-blue" data-act="home">Home</button>`,
-    { next: () => playJourney(true), home: goHome },
+     ${starRow(win.stars, 'big reveal')}
+     <p>${win.moves} moves${win.improved && !win.firstTime ? ' · New best!' : ''}</p>
+     <button class="btn btn-green" data-act="next">Continue</button>`,
+    { next: () => openMap(win.firstTime ? { advanceFrom: level } : { focus: level }) },
   );
+  for (let i = 0; i < win.stars; i++) setTimeout(() => sfx.star(i), 550 + i * 350);
 }
 
 // ---------------------------------------------------------------- decoration
@@ -307,7 +377,8 @@ const tap = (id, fn) =>
   });
 
 tap('btn-classic', () => playClassic());
-tap('btn-journey', () => playJourney());
+tap('btn-journey', () => openMap());
+tap('btn-map-home', goHome);
 tap('btn-settings', openSettings);
 tap('btn-pause', openPause);
 

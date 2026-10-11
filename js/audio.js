@@ -116,6 +116,18 @@ export class Sfx {
     this.praise();
   }
 
+  star(i) {
+    const freq = [784, 988, 1175][i] ?? 1175;
+    this.tone({ freq, type: 'triangle', dur: 0.3, vol: 0.2 });
+    this.tone({ freq: freq * 2, type: 'sine', dur: 0.2, vol: 0.06, delay: 0.03 });
+  }
+
+  levelUnlock() {
+    [659.25, 987.77, 1318.5].forEach((freq, i) =>
+      this.tone({ freq, type: 'triangle', dur: 0.18, vol: 0.14, delay: i * 0.07 }),
+    );
+  }
+
   button() {
     this.tone({ freq: 880, to: 990, type: 'triangle', dur: 0.06, vol: 0.1 });
   }
