@@ -1,12 +1,14 @@
-// Journey map: a winding path of levels from the bottom up, grouped into worlds.
+// Journey map: a road of levels winding up through a 2.5D city, one district per world.
+import { buildCity, drawCity } from './city.js';
 import { JOURNEY } from './config.js';
-import { mulberry32 } from './engine.js';
 import { worldInfo, worldOf } from './journey.js';
 
 const SPACING = 96; // vertical distance between levels
-const WORLD_GAP = 90; // extra room between worlds for the banner
+const WORLD_GAP = 90; // extra room between districts for the sign
 const TOP_PAD = 150;
-const BOTTOM_PAD = 140;
+const BOTTOM_PAD = 170;
+const SIGN_DROP = 84; // how far below level 1 the first district's sign hangs
+const TILE = 640; // the city is drawn in canvas tiles this tall, only near the screen
 const WAVE = 0.8; // how quickly the path swings side to side
 const WALK_MS = 950;
 
@@ -17,8 +19,6 @@ export function starRow(earned, cls = '') {
   const stars = [1, 2, 3].map((n) => `<i class="star${n <= earned ? ' on' : ''}" style="--i:${n}">${STAR_SVG}</i>`);
   return `<span class="star-row ${cls}">${stars.join('')}</span>`;
 }
-
-const DECO_SHAPES = [['XX', 'XX'], ['XXX'], ['X', 'X'], ['XX', 'X.'], ['XXX', '.X.'], ['.X', 'XX'], ['X']];
 
 // Smooth curve through the points (Catmull-Rom as cubic Béziers).
 function smoothPath(pts) {
@@ -58,7 +58,19 @@ export class MapScreen {
       }
       this.onSelect(Number(node.dataset.level));
     });
-    scroller.addEventListener('scroll', () => this.updateTitle(), { passive: true });
+    scroller.addEventListener(
+      'scroll',
+      () => {
+        if (this.scrollQueued) return;
+        this.scrollQueued = true;
+        requestAnimationFrame(() => {
+          this.scrollQueued = false;
+          this.updateTitle();
+          this.updateTiles();
+        });
+      },
+      { passive: true },
+    );
     window.addEventListener('resize', () => {
       if (!this.visible || !this.state) return;
       const keep = this.levelAtCenter();
@@ -83,71 +95,38 @@ export class MapScreen {
     this.width = W;
     this.bands = [];
 
-    const html = [];
+    const html = ['<div class="city"></div>'];
     const gapMid = (SPACING + WORLD_GAP) / 2;
+    const signY = (w) => pos(w * size + 1)[1] + (w === 0 ? SIGN_DROP : gapMid);
+    const bands = [];
+    const keepOut = [];
     for (let w = 0; w < worlds; w++) {
-      const info = worldInfo(w);
       const first = w * size + 1;
       const bottom = w === 0 ? height : pos(first)[1] + gapMid;
       const top = w === worlds - 1 ? 0 : pos(first + size)[1] + gapMid;
-      this.bands.push({ top, bottom, name: info.name });
-      html.push(
-        `<div class="band" style="top:${top}px;height:${bottom - top}px;background:linear-gradient(to top, ${info.sky}, ${worldInfo(w + 1).sky})"></div>`,
-      );
-
-      // Scenery: block clusters on whichever side of the path has room.
-      const rng = mulberry32(w * 7919 + 17);
-      const decoCount = Math.max(9, Math.round(W / 45));
-      for (let i = 0; i < decoCount; i++) {
-        const t = first + rng() * (size - 1);
-        const y = pos(first)[1] - (t - first) * SPACING;
-        const px = pathX(t);
-        const left = px - 56;
-        const right = W - px - 56;
-        const cell = Math.round(11 + rng() * 8);
-        const shape = DECO_SHAPES[Math.floor(rng() * DECO_SHAPES.length)];
-        const shapeW = shape[0].length * (cell + 2);
-        const room = Math.max(left, right) - shapeW - 10;
-        const color = info.deco[Math.floor(rng() * info.deco.length)];
-        const tilt = Math.round((rng() - 0.5) * 50);
-        if (room < 4) continue;
-        const x = left > right ? 6 + rng() * room : px + 56 + rng() * room;
-        const cells = shape
-          .join('')
-          .split('')
-          .map((ch) => (ch === 'X' ? '<i></i>' : '<i class="gap"></i>'))
-          .join('');
-        html.push(
-          `<div class="deco" style="left:${x.toFixed(0)}px;top:${y.toFixed(0)}px;--c:${color};grid-template-columns:repeat(${shape[0].length},${cell}px);grid-auto-rows:${cell}px;rotate:${tilt}deg">${cells}</div>`,
-        );
-      }
-      for (let i = 0; i < 4; i++) {
-        const r = 30 + rng() * 70;
-        const y = top + rng() * (bottom - top);
-        html.push(
-          `<i class="bubble" style="left:${(rng() * W - r).toFixed(0)}px;top:${(y - r).toFixed(0)}px;width:${(r * 2).toFixed(0)}px;height:${(r * 2).toFixed(0)}px"></i>`,
-        );
-      }
+      const next = w < worlds - 1 ? worldInfo(w + 1) : null;
+      bands.push({ top, bottom, index: w, theme: worldInfo(w), next });
+      const half = Math.max(90, worldInfo(w).name.length * 6.5 + 34);
+      keepOut.push([W / 2 - half, signY(w) - 34, W / 2 + half, signY(w) + 80]);
     }
+    this.bands = bands.map(({ top, bottom, theme }) => ({ top, bottom, name: theme.name }));
 
     const points = [];
     for (let level = 1; level <= count; level++) points.push(pos(level));
-    const road = smoothPath(points);
+    this.city = buildCity({ width: W, height, bands, points, keepOut });
+    const done = smoothPath(points.slice(0, avatarAt));
     html.push(
       `<svg class="map-path" width="${W}" height="${height}" viewBox="0 0 ${W} ${height}" aria-hidden="true">
-        <path class="road-edge" d="${road}"/>
-        <path class="road" d="${road}"/>
-        <path class="road-done" d="${smoothPath(points.slice(0, avatarAt))}"/>
-        <path class="road-dots" d="${road}"/>
+        <path class="road-glow" d="${done}"/>
+        <path class="road-done" d="${done}"/>
       </svg>`,
     );
 
     for (let w = 0; w < worlds; w++) {
       const first = w * size + 1;
-      const y = pos(first)[1] + (w === 0 ? 74 : gapMid);
       const locked = first > unlocked ? ' locked' : '';
       html.push(
-        `<div class="world-banner${locked}" style="top:${y}px"><small>World ${w + 1}</small><b>${worldInfo(w).name}</b></div>`,
+        `<div class="world-banner${locked}" style="top:${signY(w)}px"><small>District ${w + 1}</small><b>${worldInfo(w).name}</b></div>`,
       );
     }
 
@@ -171,7 +150,45 @@ export class MapScreen {
     this.content.style.height = `${height}px`;
     this.content.innerHTML = html.join('');
     this.points = points;
+    this.height = height;
+    this.cityLayer = this.content.querySelector('.city');
+    this.tiles = new Map();
     this.updateTitle();
+    this.updateTiles();
+  }
+
+  // Draw the city tiles around the visible part of the map and drop far-away ones.
+  updateTiles() {
+    if (!this.city || !this.visible) return;
+    const view = this.scroller.clientHeight || window.innerHeight;
+    const top = this.scroller.scrollTop;
+    const last = Math.ceil(this.height / TILE) - 1;
+    const from = Math.max(0, Math.floor((top - view) / TILE));
+    const to = Math.min(last, Math.floor((top + view * 2) / TILE));
+    for (let i = from; i <= to; i++) if (!this.tiles.has(i)) this.tiles.set(i, this.drawTile(i));
+    for (const [i, tile] of this.tiles) {
+      if (i >= from - 2 && i <= to + 2) continue;
+      tile.remove();
+      this.tiles.delete(i);
+    }
+  }
+
+  drawTile(i) {
+    const top = i * TILE;
+    const h = Math.min(TILE, this.height - top);
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const tile = document.createElement('canvas');
+    tile.className = 'city-tile';
+    tile.width = Math.ceil(this.width * dpr);
+    tile.height = Math.ceil(h * dpr);
+    tile.style.top = `${top}px`;
+    tile.style.width = `${this.width}px`;
+    tile.style.height = `${h}px`;
+    const ctx = tile.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, -top * dpr);
+    drawCity(ctx, this.city, top, top + h);
+    this.cityLayer.append(tile);
+    return tile;
   }
 
   // The marker stands beside its level, on the side facing the middle of the screen.
@@ -185,6 +202,7 @@ export class MapScreen {
     if (!this.pos) return;
     const top = this.pos(level)[1] - this.scroller.clientHeight * 0.58;
     this.scroller.scrollTo({ top, behavior: smooth ? 'smooth' : 'auto' });
+    this.updateTiles();
   }
 
   levelAtCenter() {
@@ -220,7 +238,8 @@ export class MapScreen {
           node.classList.remove('locked');
           node.classList.add('current', 'unlocking');
           node.setAttribute('aria-label', `Level ${unlocked}`);
-          this.content.querySelector('.road-done')?.setAttribute('d', smoothPath(this.points.slice(0, unlocked)));
+          const done = smoothPath(this.points.slice(0, unlocked));
+          for (const path of this.content.querySelectorAll('.road-done, .road-glow')) path.setAttribute('d', done);
           this.state.avatarAt = unlocked;
           this.walking = false;
           resolve();

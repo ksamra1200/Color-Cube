@@ -65,16 +65,76 @@ export const JOURNEY = {
   stars: { threeBase: 6, threePerGem: 0.9, twoBase: 12, twoPerGem: 1.35 },
 };
 
-// Map worlds, bottom to top. After the last one they repeat as "II", "III", ...
-// `sky` is the background at the bottom of the world; it blends into the next world's.
+// Map districts, bottom to top. After the last one they repeat as "II", "III", ...
+// lit > 0 makes it a night district: that share of windows glow in the `windows` colors.
 export const WORLDS = [
-  { name: 'Rainbow Meadow', sky: '#6fd37a', node: '#ff7a3d', deco: ['#ffcf33', '#f04848', '#3f73ee'] },
-  { name: 'Bubblegum Bay', sky: '#6fd3f0', node: '#f262b5', deco: ['#ffffff', '#f262b5', '#9b5cf0'] },
-  { name: 'Lemon Dunes', sky: '#ffd56b', node: '#e8732a', deco: ['#ff9330', '#5acb4e', '#f04848'] },
-  { name: 'Crystal Caves', sky: '#6b55d9', node: '#35c6ea', deco: ['#35c6ea', '#f262b5', '#ffffff'] },
-  { name: 'Frosty Peaks', sky: '#9fd2f7', node: '#3f73ee', deco: ['#ffffff', '#35c6ea', '#3f73ee'] },
-  { name: 'Lava Ridge', sky: '#ef6a45', node: '#ffb21f', deco: ['#ffcf33', '#ff9330', '#7a1d1d'] },
-  { name: 'Galaxy Garden', sky: '#2e2a7a', node: '#9b5cf0', deco: ['#ffffff', '#ffcf33', '#35c6ea'] },
+  {
+    name: 'Downtown',
+    node: '#ff7a3d',
+    ground: '#bcc6d2',
+    road: { asphalt: '#555d6e', sidewalk: '#e6e2d8', curb: '#a8a397', lane: '#ffffff' },
+    buildings: ['#f2b07e', '#e47f6c', '#78aed3', '#f3d06a', '#9fcfa7', '#c7a2e0'],
+    windows: ['#e3f4ff', '#b9dcf5'],
+    trees: '#4fb35a',
+  },
+  {
+    name: 'Harbor Heights',
+    node: '#3f73ee',
+    ground: '#a9c4cf',
+    road: { asphalt: '#4d5868', sidewalk: '#e8eef0', curb: '#9fb0b8', lane: '#ffffff' },
+    buildings: ['#f4f1de', '#5fa8d3', '#e07a5f', '#3d5a80', '#81b29a', '#f2cc8f'],
+    windows: ['#e6f7ff', '#c4e6fa'],
+    trees: '#3fa36b',
+  },
+  {
+    name: 'Sunset Boulevard',
+    node: '#f262b5',
+    ground: '#e3b394',
+    road: { asphalt: '#5c4b5a', sidewalk: '#f6dcc4', curb: '#c79a82', lane: '#ffe9b0' },
+    buildings: ['#ff9f6b', '#ffc86b', '#e76f8a', '#b5838d', '#ffd6a5', '#f28f8f'],
+    windows: ['#fff1c2', '#ffd98a'],
+    trees: '#5aa35a',
+  },
+  {
+    name: 'Neon Nights',
+    node: '#9b5cf0',
+    ground: '#2a2452',
+    road: { asphalt: '#1c1838', sidewalk: '#4a4378', curb: '#2f2a58', lane: '#ff6ec7' },
+    buildings: ['#3a3370', '#463d86', '#2f2960', '#54479a'],
+    windows: ['#ffe66d', '#ff6ec7', '#4de1ff'],
+    lit: 0.45,
+    trees: '#2f6b5a',
+  },
+  {
+    name: 'Snowy Uptown',
+    node: '#35c6ea',
+    ground: '#e9eff6',
+    road: { asphalt: '#69718a', sidewalk: '#ffffff', curb: '#c5cfdb', lane: '#ffffff' },
+    buildings: ['#9fb7d6', '#c48b7a', '#7d9fc0', '#d9c2a7', '#b7a3c9'],
+    windows: ['#fff2c4', '#ffe08a'],
+    trees: '#3e8a6b',
+    snow: true,
+  },
+  {
+    name: 'Old Town',
+    node: '#e8732a',
+    ground: '#d4c09c',
+    road: { asphalt: '#6b5d4f', sidewalk: '#efe3c8', curb: '#b8a47f', lane: '#fff6dc' },
+    buildings: ['#c0573e', '#d98b4a', '#a64b36', '#e3b27a', '#8f6a4a'],
+    windows: ['#fff1c9', '#f2d790'],
+    trees: '#5f9e45',
+  },
+  {
+    name: 'Skyline Summit',
+    node: '#ffb21f',
+    ground: '#1b2546',
+    road: { asphalt: '#121a33', sidewalk: '#3c4a78', curb: '#26305a', lane: '#9be7ff' },
+    buildings: ['#2c3a66', '#34477a', '#25315a', '#3f5590'],
+    windows: ['#ffd66b', '#9be7ff', '#ffffff'],
+    lit: 0.55,
+    tall: true,
+    trees: '#2c5a4a',
+  },
 ];
 
 // Piece shapes: 'X' = block, '.' = gap. Weight = how often it's dealt.

@@ -12,7 +12,7 @@ An ad-free take on **Color Block: Combo Blast** for you and your friends. It's a
 
 **Classic** is endless high-score play, and your best score is the crown.
 
-**Journey** is a level map you travel up, like Candy Crush. Levels are grouped into worlds of 15 (Rainbow Meadow, Bubblegum Bay, Lemon Dunes, ...). Tap a level to see its goals, then play. Each level starts with a partly filled board, and you win by clearing the lines that hold the gems it asks for. You start with ★★★ and lose a star each time your move count passes a target, so fewer moves means more stars. Replay any level you've finished to improve its stars. Beating a new level walks your marker to the next one.
+**Journey** is a level map you travel up, like Candy Crush. The road winds up through a 2.5D city, and every 15 levels you enter a new district: Downtown, Harbor Heights, Sunset Boulevard, Neon Nights, and more. Tap a level to see its goals, then play. Each level starts with a partly filled board, and you win by clearing the lines that hold the gems it asks for. You start with ★★★ and lose a star each time your move count passes a target, so fewer moves means more stars. Replay any level you've finished to improve its stars. Beating a new level walks your marker to the next one.
 
 Your game saves after every move, so you can close the app and pick up where you left off. Scores and progress are stored on each phone separately.
 
@@ -45,7 +45,7 @@ Almost everything lives in [`js/config.js`](js/config.js):
 | `SHAPES` | Every piece shape (drawn with `X` and `.`) and how often it's dealt |
 | `GENERATOR` | How generous dealing is and how it ramps up as your score grows |
 | `JOURNEY` | Gems per level, how full the starting boards are, difficulty curve, levels per world, star targets |
-| `WORLDS` | Map world names, background colors, level-node colors, scenery colors |
+| `WORLDS` | Map districts: names, ground/road/building/window/tree colors, night lighting (`lit`), snow, extra-tall towers |
 
 Other files:
 
@@ -69,6 +69,7 @@ js/
   engine.js           game rules (no DOM, unit-tested)
   journey.js          Journey levels, star targets, worlds
   map.js              Journey map screen
+  city.js             the map's 2.5D city (buildings, trees, lamps, road)
   game.js             play screen: input, animation, drawing
   render.js           block and gem drawing
   main.js             menus, saving, wiring
