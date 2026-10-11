@@ -17,12 +17,11 @@ Your game saves after every move, so you can close the app and pick up where you
 
 ## Put it on your phones
 
-The game is a set of static files, so any static host works. GitHub Pages is free:
+The game is hosted free on GitHub Pages at **https://ksamra1200.github.io/Color-Cube/**.
 
-1. Merge this branch into `main`.
-2. On GitHub, open the repo → **Settings → Pages**. Under **Build and deployment**, pick **Deploy from a branch**, then select `main` and `/ (root)` and click Save.
-3. After a minute it's live at `https://<your-username>.github.io/Color-Cube/`.
-4. On each iPhone, open that link in **Safari**, tap **Share → Add to Home Screen**.
+- Every push to `main` runs the tests and redeploys automatically (`.github/workflows/deploy.yml`). Pull requests run the tests only. Watch progress in the repo's **Actions** tab.
+- The repo's **Settings → Pages → Source** must be set to **GitHub Actions**.
+- On each iPhone, open the link in **Safari**, tap **Share → Add to Home Screen**.
 
 ## Run it on your computer
 
