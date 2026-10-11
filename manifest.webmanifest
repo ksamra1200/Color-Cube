@@ -1,0 +1,16 @@
+{
+  "name": "Color Block",
+  "short_name": "Color Block",
+  "description": "Drag blocks onto the board, clear rows and columns, chain combos. No ads.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#2b4796",
+  "theme_color": "#2b4796",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
